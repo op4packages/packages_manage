@@ -1,0 +1,79 @@
+# This is a basic workflow to help you get started with Actions
+
+name: UPDATE
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  schedule:
+    - cron: '30 1,7,13,19 * * *'
+  workflow_dispatch:
+    inputs:
+      ssh:
+        description: 'SSH connection to Actions'
+        required: false
+        default: 'false'
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    # The type of runner that the job will run on
+    runs-on: ubuntu-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+
+      - name: Git config
+        run: |
+          git config --global user.email "acooler15@foxmail.com"
+          git config --global user.name "acooler15"
+
+      - name: Init
+        run: |
+          sudo mkdir -p /workdir
+          sudo chown $USER:$GROUPS /workdir
+          # git checkout -b temp $(git log --pretty=format:"%h" --reverse ./README.md | head -1)
+          chmod +x ${GITHUB_WORKSPACE}/.github/scripts/*.sh
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        if: (github.event.inputs.ssh == 'true' && github.event.inputs.ssh  != 'false') || contains(github.event.action, 'ssh')
+
+      - name: Git subtree split
+        run: |
+          # setting repo_
+          # op_packages='https://${{ github.actor }}:${{ secrets.TOKEN }}@github.com/${{ github.repository }}.git'
+
+          # coolsnowwolf/lede
+          cd /workdir
+          git clone https://github.com/coolsnowwolf/lede.git
+          cd lede
+          
+          packages=('automount' 'ntfs3-oot' 'ntfs3-mount')
+          for package in ${packages[@]}; do \
+            echo "https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git";
+            ${GITHUB_WORKSPACE}/.github/scripts/package.sh $(pwd) package/lean/${package} ${package} https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git master; \
+          done
+
+          # coolsnowwolf/packages
+          cd /workdir
+          git clone https://github.com/coolsnowwolf/packages.git
+          cd packages
+          packages=('pdnsd-alt' 'redsocks2' 'dns2socks' 'ipt2socks' 'microsocks')
+          for package in ${packages[@]}; do \
+            echo "https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git";
+            ${GITHUB_WORKSPACE}/.github/scripts/package.sh $(pwd) net/${package} ${package} https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git master ; \
+          done
+      - name: Log
+        run: |
+          if [ $((`date +%d` % 2)) = 0 ]; then \
+              if [ `date +%d` == '19' ]; then \
+                echo `date +"%Y-%m-%d %H:%M:%S"` check update >> log; \
+                git add . && git commit -m "check update"; \
+                git push origin master; \
+              fi \
+          fi
+
+
