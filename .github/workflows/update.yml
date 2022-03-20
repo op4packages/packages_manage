@@ -54,7 +54,7 @@ jobs:
           packages=('automount' 'ntfs3-oot' 'ntfs3-mount')
           for package in ${packages[@]}; do \
             echo "https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git";
-            ${GITHUB_WORKSPACE}/.github/scripts/package.sh $(pwd) package/lean/${package} ${package} https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git master; \
+            ${GITHUB_WORKSPACE}/.github/scripts/package.sh $(pwd) package/lean/${package} ${package} https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git; \
           done
 
           # coolsnowwolf/packages
@@ -64,16 +64,16 @@ jobs:
           packages=('pdnsd-alt' 'redsocks2' 'dns2socks' 'ipt2socks' 'microsocks')
           for package in ${packages[@]}; do \
             echo "https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git";
-            ${GITHUB_WORKSPACE}/.github/scripts/package.sh $(pwd) net/${package} ${package} https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git master ; \
+            ${GITHUB_WORKSPACE}/.github/scripts/package.sh $(pwd) net/${package} ${package} https://acooler15:${{ secrets.TOKEN }}@github.com/op4packages/${package}.git ; \
           done
-      - name: Log
+      - name: git update
         run: |
-          if [ $((`date +%d` % 2)) = 0 ]; then \
-              if [ `date +%d` == '19' ]; then \
-                echo `date +"%Y-%m-%d %H:%M:%S"` check update >> log; \
-                git add . && git commit -m "check update"; \
-                git push origin master; \
-              fi \
-          fi
+          if [ -n "$(git status --untracked-files=no -s)" ]; then git commit -am "auto update"; fi
+      - name: Extract branch name
+        id: extract_branch
+        shell: bash
+        run: echo "##[set-output name=branch;]$(echo ${GITHUB_REF#refs/heads/})"
 
+      - name: Git push
+        run: git push origin ${{ steps.extract_branch.outputs.branch }}
 
